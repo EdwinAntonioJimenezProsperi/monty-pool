@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
-import { DollarSign, Table2, ShoppingCart, TrendingUp } from 'lucide-react';
+import { DollarSign, Table2, ShoppingCart, TrendingUp, Trash2 } from 'lucide-react';
 
 export default function Reports() {
   const [summary, setSummary] = useState(null);
   const [sales, setSales] = useState([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [message, setMessage] = useState(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -34,12 +36,33 @@ export default function Reports() {
     loadData();
   };
 
+  const handleReset = async () => {
+    if (!confirm('¿Borrar TODOS los datos de prueba? Se eliminarán las ventas, las sesiones de mesas y los ingresos totales volverán a cero. Los productos, usuarios y la configuración de mesas se mantienen. Esta acción no se puede deshacer.')) return;
+    setResetting(true);
+    try {
+      const res = await api.post('/admin/reset');
+      setMessage({ type: 'success', text: res.data.message || 'Datos de prueba reiniciados' });
+      await loadData();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Error al reiniciar datos' });
+    }
+    setResetting(false);
+    setTimeout(() => setMessage(null), 4000);
+  };
+
   return (
     <div>
-      <div className="page-header">
-        <h2>Reportes</h2>
-        <p>Resumen de ventas e ingresos</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h2>Reportes</h2>
+          <p>Resumen de ventas e ingresos</p>
+        </div>
+        <button className="btn btn-danger" onClick={handleReset} disabled={resetting}>
+          <Trash2 size={16} /> {resetting ? 'Borrando...' : 'Borrar datos de prueba'}
+        </button>
       </div>
+
+      {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
       <div className="card" style={{ marginBottom: 24 }}>
         <form onSubmit={handleFilter} style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap' }}>

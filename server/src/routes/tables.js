@@ -111,12 +111,13 @@ router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'Mesa no encontrada' });
   }
 
+  // Las tarifas de las mesas se guardan como numeros enteros (sin decimales)
   db.prepare(
     'UPDATE tables_config SET name = ?, price_per_hour = ?, price_per_half_hour = ? WHERE id = ?'
   ).run(
     name || table.name,
-    price_per_hour !== undefined ? parseFloat(price_per_hour) : table.price_per_hour,
-    price_per_half_hour !== undefined ? parseFloat(price_per_half_hour) : table.price_per_half_hour,
+    price_per_hour !== undefined ? Math.round(parseFloat(price_per_hour)) : table.price_per_hour,
+    price_per_half_hour !== undefined ? Math.round(parseFloat(price_per_half_hour)) : table.price_per_half_hour,
     id
   );
 
@@ -132,9 +133,14 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'Nombre de mesa es requerido' });
   }
 
+  // Las tarifas de las mesas se guardan como numeros enteros (sin decimales)
   const result = db.prepare(
     'INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?)'
-  ).run(name, price_per_hour || 20, price_per_half_hour || 10);
+  ).run(
+    name,
+    Math.round(parseFloat(price_per_hour)) || 20,
+    Math.round(parseFloat(price_per_half_hour)) || 10
+  );
 
   const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(table);

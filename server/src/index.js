@@ -9,6 +9,7 @@ const productRoutes = require('./routes/products');
 const tableRoutes = require('./routes/tables');
 const salesRoutes = require('./routes/sales');
 const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve frontend in production
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
