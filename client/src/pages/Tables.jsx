@@ -67,14 +67,14 @@ export default function Tables() {
             </div>
 
             <div className="table-rates">
-              <span><Clock size={14} /> ${table.price_per_hour}/hora</span>
-              <span><DollarSign size={14} /> ${table.price_per_half_hour}/media hora</span>
+              <span><Clock size={14} /> Bs {table.price_per_hour}/hora</span>
+              <span><DollarSign size={14} /> Bs {table.price_per_half_hour}/media hora</span>
             </div>
 
             <div className="table-time">
               <div className="time">{table.elapsed_display || '0h 0m'}</div>
               {table.status === 'occupied' && (
-                <div className="cost">Acumulado: ${table.estimated_total?.toFixed(2)}</div>
+                <div className="cost">Acumulado: Bs {table.estimated_total?.toFixed(2)}</div>
               )}
             </div>
 

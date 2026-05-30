@@ -97,7 +97,7 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
     table_id: parseInt(id),
     duration_minutes: diffMinutes,
     total,
-    message: `Mesa ${table.name} liberada. Tiempo: ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m. Total: $${total}`
+    message: `Mesa ${table.name} liberada. Tiempo: ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m. Total: Bs ${total}`
   });
 });
 

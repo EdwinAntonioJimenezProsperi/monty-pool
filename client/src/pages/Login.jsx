@@ -35,7 +35,7 @@ export default function Login() {
     <div className="login-container">
       <div className="login-card">
         <div className="icon">🎱</div>
-        <h1>Sistema de Billar</h1>
+        <h1>Monty Pool</h1>
         <p className="subtitle">Ingresa tus credenciales para continuar</p>
 
         {error && <div className="login-error">{error}</div>}

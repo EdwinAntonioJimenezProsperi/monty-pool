@@ -64,7 +64,7 @@ export default function Reports() {
                 <DollarSign size={24} />
               </div>
               <div>
-                <div className="stat-value">${summary.grand_total?.toFixed(2)}</div>
+                <div className="stat-value">Bs {summary.grand_total?.toFixed(2)}</div>
                 <div className="stat-label">Ingreso Total</div>
               </div>
             </div>
@@ -73,7 +73,7 @@ export default function Reports() {
                 <ShoppingCart size={24} />
               </div>
               <div>
-                <div className="stat-value">${summary.product_sales?.total?.toFixed(2)}</div>
+                <div className="stat-value">Bs {summary.product_sales?.total?.toFixed(2)}</div>
                 <div className="stat-label">Ventas de Productos ({summary.product_sales?.count})</div>
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function Reports() {
                 <Table2 size={24} />
               </div>
               <div>
-                <div className="stat-value">${summary.table_revenue?.total?.toFixed(2)}</div>
+                <div className="stat-value">Bs {summary.table_revenue?.total?.toFixed(2)}</div>
                 <div className="stat-label">Ingresos por Mesas ({summary.table_revenue?.sessions})</div>
               </div>
             </div>
@@ -106,7 +106,7 @@ export default function Reports() {
                     <tr key={i}>
                       <td><strong>{p.name}</strong></td>
                       <td>{p.total_qty}</td>
-                      <td>${p.total_revenue?.toFixed(2)}</td>
+                      <td>Bs {p.total_revenue?.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -144,8 +144,8 @@ export default function Reports() {
                   <td>{new Date(sale.created_at).toLocaleString('es-MX')}</td>
                   <td>{sale.product_name}</td>
                   <td>{sale.quantity}</td>
-                  <td>${sale.unit_price?.toFixed(2)}</td>
-                  <td><strong>${sale.total?.toFixed(2)}</strong></td>
+                  <td>Bs {sale.unit_price?.toFixed(2)}</td>
+                  <td><strong>Bs {sale.total?.toFixed(2)}</strong></td>
                   <td>{sale.table_name || '-'}</td>
                   <td>{sale.sold_by || '-'}</td>
                 </tr>

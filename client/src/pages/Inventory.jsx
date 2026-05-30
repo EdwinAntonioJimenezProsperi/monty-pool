@@ -49,7 +49,7 @@ export default function Inventory() {
                   )}
                 </td>
                 <td><strong>{product.name}</strong></td>
-                <td>${product.price.toFixed(2)}</td>
+                <td>Bs {product.price.toFixed(2)}</td>
                 <td>
                   <span className={product.stock <= 5 ? 'stock low' : ''}>
                     {product.stock} unidades

@@ -88,7 +88,7 @@ export default function Sales() {
           table_id: selectedTable || null
         });
       }
-      setMessage({ type: 'success', text: `Venta registrada: $${cartTotal.toFixed(2)}` });
+      setMessage({ type: 'success', text: `Venta registrada: Bs ${cartTotal.toFixed(2)}` });
       setCart([]);
       setSelectedTable('');
       loadData();
@@ -130,7 +130,7 @@ export default function Sales() {
                 </div>
                 <div className="product-info">
                   <h4>{product.name}</h4>
-                  <div className="price">${product.price.toFixed(2)}</div>
+                  <div className="price">Bs {product.price.toFixed(2)}</div>
                   <div className={`stock ${product.stock <= 5 ? 'low' : ''}`}>
                     Stock: {product.stock}
                   </div>
@@ -170,7 +170,7 @@ export default function Sales() {
                 <div key={item.product_id} className="cart-item">
                   <div className="cart-item-info">
                     <div className="name">{item.name}</div>
-                    <div className="price">${(item.price * item.quantity).toFixed(2)}</div>
+                    <div className="price">Bs {(item.price * item.quantity).toFixed(2)}</div>
                   </div>
                   <div className="quantity-control">
                     <button onClick={() => updateQuantity(item.product_id, -1)}>
@@ -189,7 +189,7 @@ export default function Sales() {
 
               <div className="cart-total">
                 <span>Total:</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>Bs {cartTotal.toFixed(2)}</span>
               </div>
 
               <button
@@ -198,7 +198,7 @@ export default function Sales() {
                 disabled={processing}
                 style={{ marginTop: 12 }}
               >
-                {processing ? 'Procesando...' : `Cobrar $${cartTotal.toFixed(2)}`}
+                {processing ? 'Procesando...' : `Cobrar Bs ${cartTotal.toFixed(2)}`}
               </button>
             </>
           )}

@@ -124,7 +124,7 @@ export default function AdminProducts() {
                   )}
                 </td>
                 <td><strong>{product.name}</strong></td>
-                <td>${product.price.toFixed(2)}</td>
+                <td>Bs {product.price.toFixed(2)}</td>
                 <td>{product.stock}</td>
                 <td>
                   <button
@@ -171,7 +171,7 @@ export default function AdminProducts() {
                 />
               </div>
               <div className="form-group">
-                <label>Precio ($)</label>
+                <label>Precio (Bs)</label>
                 <input
                   type="number"
                   step="0.01"

@@ -1,6 +1,6 @@
-# Sistema de Billar 🎱
+# Monty Pool 🎱
 
-Sistema web para la gestión de un negocio de billar. Control de inventario, ventas y mesas de juego.
+Sistema web para la gestión de un negocio de billar. Control de inventario, ventas y mesas de juego. Moneda: Bolivianos (Bs).
 
 ## Funcionalidades
 
@@ -18,8 +18,8 @@ Sistema web para la gestión de un negocio de billar. Control de inventario, ven
 - **Reportes**: Ver resumen de ventas, ingresos por mesas y productos más vendidos
 
 ## Tarifas por Defecto
-- **Hora**: $20
-- **Media hora**: $10
+- **Hora**: Bs 20
+- **Media hora**: Bs 10
 
 ## Tecnologías
 - **Frontend**: React + Vite

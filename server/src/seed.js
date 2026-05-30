@@ -26,7 +26,7 @@ function seed() {
     for (let i = 1; i <= 3; i++) {
       db.prepare('INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?)').run(`Mesa ${i}`, 20, 10);
     }
-    console.log('3 mesas creadas con tarifas: $20/hora, $10/media hora');
+    console.log('3 mesas creadas con tarifas: Bs 20/hora, Bs 10/media hora');
   }
 
   // Create sample products

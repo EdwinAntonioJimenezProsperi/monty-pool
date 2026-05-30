@@ -12,7 +12,7 @@ export default function Layout() {
     <div className="app-container">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1>🎱 Billar</h1>
+          <h1>🎱 Monty Pool</h1>
           <div className="subtitle">Sistema de Gestión</div>
         </div>
 

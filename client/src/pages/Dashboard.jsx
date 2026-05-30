@@ -46,7 +46,7 @@ export default function Dashboard() {
             <DollarSign size={24} />
           </div>
           <div>
-            <div className="stat-value">${summary?.grand_total?.toFixed(2) || '0.00'}</div>
+            <div className="stat-value">Bs {summary?.grand_total?.toFixed(2) || '0.00'}</div>
             <div className="stat-label">Ingresos Totales</div>
           </div>
         </div>
