@@ -74,7 +74,7 @@ export default function Tables() {
             <div className="table-time">
               <div className="time">{table.elapsed_display || '0h 0m'}</div>
               {table.status === 'occupied' && (
-                <div className="cost">Acumulado: Bs {table.estimated_total?.toFixed(2)}</div>
+                <div className="cost">Acumulado: Bs {table.estimated_total ?? 0}</div>
               )}
             </div>
 
