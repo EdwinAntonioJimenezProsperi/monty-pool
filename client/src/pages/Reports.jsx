@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { DollarSign, Table2, ShoppingCart, TrendingUp, Trash2 } from 'lucide-react';
+import { formatDateTime } from '../utils/datetime';
 
 export default function Reports() {
   const [summary, setSummary] = useState(null);
@@ -164,7 +165,7 @@ export default function Reports() {
             <tbody>
               {sales.map(sale => (
                 <tr key={sale.id}>
-                  <td>{new Date(sale.created_at).toLocaleString('es-MX')}</td>
+                  <td>{formatDateTime(sale.created_at)}</td>
                   <td>{sale.product_name}</td>
                   <td>{sale.quantity}</td>
                   <td>Bs {sale.unit_price?.toFixed(2)}</td>

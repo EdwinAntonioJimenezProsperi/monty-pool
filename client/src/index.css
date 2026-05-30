@@ -144,6 +144,32 @@ body {
   min-height: 100vh;
 }
 
+/* Live clock (device time/date) */
+.live-clock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  color: var(--text-light, #6b7280);
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.live-clock .clock-date {
+  text-transform: capitalize;
+}
+
+.live-clock .clock-time {
+  font-weight: 700;
+  color: var(--primary-dark, #1f2937);
+  font-variant-numeric: tabular-nums;
+}
+
 .page-header {
   margin-bottom: 24px;
 }

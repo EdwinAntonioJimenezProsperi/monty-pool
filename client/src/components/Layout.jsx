@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Table2, ShoppingCart, Package,
-  Settings, Users, BarChart3, LogOut, CircleDot, Menu, X
+  Settings, Users, BarChart3, LogOut, CircleDot, Menu, X, Clock
 } from 'lucide-react';
+
+// Reloj en vivo: usa la hora y fecha del dispositivo que abre la app.
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="live-clock">
+      <Clock size={16} />
+      <span className="clock-date">
+        {now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      </span>
+      <span className="clock-time">{now.toLocaleTimeString()}</span>
+    </div>
+  );
+}
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
@@ -84,6 +102,7 @@ export default function Layout() {
       </aside>
 
       <main className="main-content">
+        <LiveClock />
         <Outlet />
       </main>
     </div>
