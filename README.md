@@ -24,21 +24,28 @@ Sistema web para la gestión de un negocio de billar. Control de inventario, ven
 ## Tecnologías
 - **Frontend**: React + Vite
 - **Backend**: Node.js + Express
-- **Base de datos**: SQLite (better-sqlite3)
+- **Base de datos**: PostgreSQL (vía `pg`). Datos permanentes en proveedores gratuitos como Neon o Supabase.
 - **Autenticación**: JWT
 
 ## Instalación
+
+Requiere una base de datos PostgreSQL. Define la variable de entorno `DATABASE_URL` con la cadena de conexión (por ejemplo, la de Neon: `postgresql://usuario:clave@host/db?sslmode=require`).
 
 ```bash
 # Instalar dependencias
 npm install
 
-# Inicializar base de datos con datos de ejemplo
+# Base de datos Postgres (ejemplo con la URL de Neon)
+export DATABASE_URL="postgresql://usuario:clave@host/db?sslmode=require"
+
+# Crear tablas y datos de ejemplo
 npm run seed --workspace=server
 
-# Desarrollo
+# Desarrollo (el servidor también crea tablas y siembra datos al iniciar)
 npm run dev
 ```
+
+Los datos (ventas, sesiones de mesas, etc.) **persisten** en la base de datos y no se borran al redesplegar.
 
 ## Credenciales por Defecto
 - **Admin**: usuario `admin`, contraseña `admin123`
@@ -47,10 +54,10 @@ npm run dev
 ## Estructura
 ```
 billar-system/
-├── server/          # Backend (Express + SQLite)
+├── server/          # Backend (Express + PostgreSQL)
 │   └── src/
 │       ├── index.js       # Entry point
-│       ├── database.js    # SQLite setup
+│       ├── database.js    # Conexión y helpers de PostgreSQL
 │       ├── seed.js        # Datos iniciales
 │       ├── middleware/     # Auth middleware
 │       └── routes/        # API routes

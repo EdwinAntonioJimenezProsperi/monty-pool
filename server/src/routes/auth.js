@@ -1,20 +1,19 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getDb } = require('../database');
+const { get, asyncHandler } = require('../database');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/login', (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
   }
 
-  const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  const user = await get('SELECT * FROM users WHERE username = ?', [username]);
 
   if (!user) {
     return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -35,7 +34,7 @@ router.post('/login', (req, res) => {
     token,
     user: { id: user.id, username: user.username, role: user.role }
   });
-});
+}));
 
 router.get('/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });

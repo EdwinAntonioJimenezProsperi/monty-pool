@@ -10,9 +10,8 @@ services:
         value: "20"
       - key: JWT_SECRET
         generateValue: true
-    # Para que la base de datos SQLite sea permanente (plan de pago),
-    # descomenta este disco y agrega la variable DB_PATH=/data/billar.db
-    # disk:
-    #   name: monty-pool-data
-    #   mountPath: /data
-    #   sizeGB: 1
+      # Cadena de conexión de Postgres (Neon/Supabase). Los datos son
+      # permanentes: NO se borran al redesplegar. Se configura en el panel
+      # de Render (Environment) y por eso aquí queda con sync: false.
+      - key: DATABASE_URL
+        sync: false

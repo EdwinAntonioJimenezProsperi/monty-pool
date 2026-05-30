@@ -1,37 +1,37 @@
 const bcrypt = require('bcryptjs');
-const { getDb } = require('./database');
+const { init, get, run } = require('./database');
 
-function seed() {
-  const db = getDb();
+async function seed() {
+  await init();
 
   // Create admin user
-  const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
+  const adminExists = await get('SELECT id FROM users WHERE username = ?', ['admin']);
   if (!adminExists) {
     const hashedPassword = bcrypt.hashSync('admin123', 10);
-    db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('admin', hashedPassword, 'admin');
+    await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', hashedPassword, 'admin']);
     console.log('Usuario admin creado (usuario: admin, contraseña: admin123)');
   }
 
   // Create encargado user
-  const encargadoExists = db.prepare('SELECT id FROM users WHERE username = ?').get('encargado');
+  const encargadoExists = await get('SELECT id FROM users WHERE username = ?', ['encargado']);
   if (!encargadoExists) {
     const hashedPassword = bcrypt.hashSync('encargado123', 10);
-    db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('encargado', hashedPassword, 'encargado');
+    await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['encargado', hashedPassword, 'encargado']);
     console.log('Usuario encargado creado (usuario: encargado, contraseña: encargado123)');
   }
 
   // Create 3 tables
-  const tableCount = db.prepare('SELECT COUNT(*) as count FROM tables_config').get().count;
-  if (tableCount === 0) {
+  const tableCountRow = await get('SELECT COUNT(*) as count FROM tables_config');
+  if (Number(tableCountRow.count) === 0) {
     for (let i = 1; i <= 3; i++) {
-      db.prepare('INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?)').run(`Mesa ${i}`, 20, 10);
+      await run('INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?)', [`Mesa ${i}`, 20, 10]);
     }
     console.log('3 mesas creadas con tarifas: Bs 20/hora, Bs 10/media hora');
   }
 
   // Create sample products
-  const productCount = db.prepare('SELECT COUNT(*) as count FROM products').get().count;
-  if (productCount === 0) {
+  const productCountRow = await get('SELECT COUNT(*) as count FROM products');
+  if (Number(productCountRow.count) === 0) {
     const products = [
       { name: 'Cerveza', price: 25, stock: 50 },
       { name: 'Coca Cola', price: 15, stock: 40 },
@@ -41,7 +41,7 @@ function seed() {
     ];
 
     for (const p of products) {
-      db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)').run(p.name, p.price, p.stock);
+      await run('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)', [p.name, p.price, p.stock]);
     }
     console.log(`${products.length} productos de ejemplo creados`);
   }
@@ -52,5 +52,10 @@ function seed() {
 module.exports = { seed };
 
 if (require.main === module) {
-  seed();
+  seed()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Error en seed:', err);
+      process.exit(1);
+    });
 }
