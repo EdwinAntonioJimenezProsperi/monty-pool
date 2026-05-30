@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: monty-pool
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true
+    # Para que la base de datos SQLite sea permanente (plan de pago),
+    # descomenta este disco y agrega la variable DB_PATH=/data/billar.db
+    # disk:
+    #   name: monty-pool-data
+    #   mountPath: /data
+    #   sizeGB: 1
