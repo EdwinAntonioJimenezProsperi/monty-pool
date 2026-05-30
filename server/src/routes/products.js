@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDb } = require('../database');
+const { all, get, run, asyncHandler } = require('../database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -32,69 +32,61 @@ const upload = multer({
   }
 });
 
-router.get('/', authenticateToken, (req, res) => {
-  const db = getDb();
-  const products = db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY name').all();
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const products = await all('SELECT * FROM products WHERE active = 1 ORDER BY name');
   res.json(products);
-});
+}));
 
-router.get('/all', authenticateToken, requireAdmin, (req, res) => {
-  const db = getDb();
-  const products = db.prepare('SELECT * FROM products ORDER BY name').all();
+router.get('/all', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+  const products = await all('SELECT * FROM products ORDER BY name');
   res.json(products);
-});
+}));
 
-router.post('/', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
+router.post('/', authenticateToken, requireAdmin, upload.single('image'), asyncHandler(async (req, res) => {
   const { name, price, stock } = req.body;
 
   if (!name || price === undefined) {
     return res.status(400).json({ error: 'Nombre y precio son requeridos' });
   }
 
-  const db = getDb();
   const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-  const result = db.prepare(
-    'INSERT INTO products (name, price, stock, image) VALUES (?, ?, ?, ?)'
-  ).run(name, parseFloat(price), parseInt(stock) || 0, image);
-
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+  const product = await get(
+    'INSERT INTO products (name, price, stock, image) VALUES (?, ?, ?, ?) RETURNING *',
+    [name, parseFloat(price), parseInt(stock) || 0, image]
+  );
   res.status(201).json(product);
-});
+}));
 
-router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { name, price, stock, active } = req.body;
-  const db = getDb();
 
-  const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  const existing = await get('SELECT * FROM products WHERE id = ?', [id]);
   if (!existing) {
     return res.status(404).json({ error: 'Producto no encontrado' });
   }
 
   const image = req.file ? `/uploads/${req.file.filename}` : existing.image;
 
-  db.prepare(
-    'UPDATE products SET name = ?, price = ?, stock = ?, image = ?, active = ? WHERE id = ?'
-  ).run(
-    name || existing.name,
-    price !== undefined ? parseFloat(price) : existing.price,
-    stock !== undefined ? parseInt(stock) : existing.stock,
-    image,
-    active !== undefined ? parseInt(active) : existing.active,
-    id
+  const product = await get(
+    'UPDATE products SET name = ?, price = ?, stock = ?, image = ?, active = ? WHERE id = ? RETURNING *',
+    [
+      name || existing.name,
+      price !== undefined ? parseFloat(price) : existing.price,
+      stock !== undefined ? parseInt(stock) : existing.stock,
+      image,
+      active !== undefined ? parseInt(active) : existing.active,
+      id
+    ]
   );
-
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
   res.json(product);
-});
+}));
 
-router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const db = getDb();
-
-  db.prepare('UPDATE products SET active = 0 WHERE id = ?').run(id);
+  await run('UPDATE products SET active = 0 WHERE id = ?', [id]);
   res.json({ message: 'Producto desactivado' });
-});
+}));
 
 module.exports = router;

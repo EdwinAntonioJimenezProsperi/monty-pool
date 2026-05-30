@@ -97,8 +97,8 @@ export default function AdminTables() {
             {tables.map(table => (
               <tr key={table.id}>
                 <td><strong>{table.name}</strong></td>
-                <td>Bs {table.price_per_hour.toFixed(2)}</td>
-                <td>Bs {table.price_per_half_hour.toFixed(2)}</td>
+                <td>Bs {Math.round(table.price_per_hour)}</td>
+                <td>Bs {Math.round(table.price_per_half_hour)}</td>
                 <td>
                   <span className={`table-status ${table.status}`}>
                     {table.status === 'available' ? 'Disponible' : 'Ocupada'}
@@ -145,7 +145,7 @@ export default function AdminTables() {
                 <label>Precio por Hora (Bs)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   className="form-control"
                   value={form.price_per_hour}
@@ -157,7 +157,7 @@ export default function AdminTables() {
                 <label>Precio por Media Hora (Bs)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   className="form-control"
                   value={form.price_per_half_hour}

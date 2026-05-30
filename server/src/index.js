@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getDb } = require('./database');
 const { seed } = require('./seed');
 
 const authRoutes = require('./routes/auth');
@@ -9,6 +8,7 @@ const productRoutes = require('./routes/products');
 const tableRoutes = require('./routes/tables');
 const salesRoutes = require('./routes/sales');
 const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +26,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve frontend in production
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
@@ -36,12 +37,23 @@ app.get('*', (req, res) => {
   }
 });
 
-// Initialize database and seed defaults (idempotent)
-getDb();
-seed();
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+// Manejador de errores: responde 500 ante fallos en los handlers async.
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
+
+// Inicializa la base de datos (crea tablas) y siembra los datos por defecto,
+// luego arranca el servidor.
+seed()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('No se pudo inicializar la base de datos:', err);
+    process.exit(1);
+  });
 
 module.exports = app;

@@ -1,16 +1,15 @@
 const express = require('express');
-const { getDb } = require('../database');
+const { all, get, run, asyncHandler } = require('../database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', authenticateToken, (req, res) => {
-  const db = getDb();
-  const tables = db.prepare('SELECT * FROM tables_config ORDER BY id').all();
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const tables = await all('SELECT * FROM tables_config ORDER BY id');
 
   const enriched = tables.map(table => {
     if (table.status === 'occupied' && table.started_at) {
-      const startTime = new Date(table.started_at + 'Z');
+      const startTime = new Date(table.started_at);
       const now = new Date();
       const diffMs = now - startTime;
       const diffMinutes = Math.floor(diffMs / 60000);
@@ -31,13 +30,12 @@ router.get('/', authenticateToken, (req, res) => {
   });
 
   res.json(enriched);
-});
+}));
 
-router.post('/:id/start', authenticateToken, (req, res) => {
+router.post('/:id/start', authenticateToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const db = getDb();
 
-  const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
+  const table = await get('SELECT * FROM tables_config WHERE id = ?', [id]);
   if (!table) {
     return res.status(404).json({ error: 'Mesa no encontrada' });
   }
@@ -46,25 +44,23 @@ router.post('/:id/start', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'La mesa ya está ocupada' });
   }
 
-  const now = new Date().toISOString().replace('Z', '').split('.')[0];
+  const session = await get(
+    'INSERT INTO table_sessions (table_id, started_at, user_id) VALUES (?, now(), ?) RETURNING id, started_at',
+    [id, req.user.id]
+  );
 
-  const sessionResult = db.prepare(
-    'INSERT INTO table_sessions (table_id, started_at, user_id) VALUES (?, ?, ?)'
-  ).run(id, now, req.user.id);
+  const updated = await get(
+    'UPDATE tables_config SET status = ?, started_at = ?, current_session_id = ? WHERE id = ? RETURNING *',
+    ['occupied', session.started_at, session.id, id]
+  );
 
-  db.prepare(
-    'UPDATE tables_config SET status = ?, started_at = ?, current_session_id = ? WHERE id = ?'
-  ).run('occupied', now, sessionResult.lastInsertRowid, id);
-
-  const updated = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
   res.json(updated);
-});
+}));
 
-router.post('/:id/stop', authenticateToken, (req, res) => {
+router.post('/:id/stop', authenticateToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const db = getDb();
 
-  const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
+  const table = await get('SELECT * FROM tables_config WHERE id = ?', [id]);
   if (!table) {
     return res.status(404).json({ error: 'Mesa no encontrada' });
   }
@@ -73,7 +69,7 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'La mesa no está ocupada' });
   }
 
-  const startTime = new Date(table.started_at + 'Z');
+  const startTime = new Date(table.started_at);
   const now = new Date();
   const diffMs = now - startTime;
   const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
@@ -81,17 +77,17 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
   // Cobro proporcional (regla de 3 simple): 60 min = price_per_hour
   const total = Math.round((diffMinutes * table.price_per_hour / 60) * 100) / 100;
 
-  const endTime = now.toISOString().replace('Z', '').split('.')[0];
-
   if (table.current_session_id) {
-    db.prepare(
-      'UPDATE table_sessions SET ended_at = ?, duration_minutes = ?, total = ? WHERE id = ?'
-    ).run(endTime, diffMinutes, total, table.current_session_id);
+    await run(
+      'UPDATE table_sessions SET ended_at = now(), duration_minutes = ?, total = ? WHERE id = ?',
+      [diffMinutes, total, table.current_session_id]
+    );
   }
 
-  db.prepare(
-    'UPDATE tables_config SET status = ?, started_at = NULL, current_session_id = NULL WHERE id = ?'
-  ).run('available', id);
+  await run(
+    'UPDATE tables_config SET status = ?, started_at = NULL, current_session_id = NULL WHERE id = ?',
+    ['available', id]
+  );
 
   res.json({
     table_id: parseInt(id),
@@ -99,52 +95,54 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
     total,
     message: `Mesa ${table.name} liberada. Tiempo: ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m. Total: Bs ${total.toFixed(2)}`
   });
-});
+}));
 
-router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { name, price_per_hour, price_per_half_hour } = req.body;
-  const db = getDb();
 
-  const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
+  const table = await get('SELECT * FROM tables_config WHERE id = ?', [id]);
   if (!table) {
     return res.status(404).json({ error: 'Mesa no encontrada' });
   }
 
-  db.prepare(
-    'UPDATE tables_config SET name = ?, price_per_hour = ?, price_per_half_hour = ? WHERE id = ?'
-  ).run(
-    name || table.name,
-    price_per_hour !== undefined ? parseFloat(price_per_hour) : table.price_per_hour,
-    price_per_half_hour !== undefined ? parseFloat(price_per_half_hour) : table.price_per_half_hour,
-    id
+  // Las tarifas de las mesas se guardan como numeros enteros (sin decimales)
+  const updated = await get(
+    'UPDATE tables_config SET name = ?, price_per_hour = ?, price_per_half_hour = ? WHERE id = ? RETURNING *',
+    [
+      name || table.name,
+      price_per_hour !== undefined ? Math.round(parseFloat(price_per_hour)) : table.price_per_hour,
+      price_per_half_hour !== undefined ? Math.round(parseFloat(price_per_half_hour)) : table.price_per_half_hour,
+      id
+    ]
   );
 
-  const updated = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
   res.json(updated);
-});
+}));
 
-router.post('/', authenticateToken, requireAdmin, (req, res) => {
+router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { name, price_per_hour, price_per_half_hour } = req.body;
-  const db = getDb();
 
   if (!name) {
     return res.status(400).json({ error: 'Nombre de mesa es requerido' });
   }
 
-  const result = db.prepare(
-    'INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?)'
-  ).run(name, price_per_hour || 20, price_per_half_hour || 10);
-
-  const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(result.lastInsertRowid);
+  // Las tarifas de las mesas se guardan como numeros enteros (sin decimales)
+  const table = await get(
+    'INSERT INTO tables_config (name, price_per_hour, price_per_half_hour) VALUES (?, ?, ?) RETURNING *',
+    [
+      name,
+      Math.round(parseFloat(price_per_hour)) || 20,
+      Math.round(parseFloat(price_per_half_hour)) || 10
+    ]
+  );
   res.status(201).json(table);
-});
+}));
 
-router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const db = getDb();
 
-  const table = db.prepare('SELECT * FROM tables_config WHERE id = ?').get(id);
+  const table = await get('SELECT * FROM tables_config WHERE id = ?', [id]);
   if (!table) {
     return res.status(404).json({ error: 'Mesa no encontrada' });
   }
@@ -153,8 +151,8 @@ router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'No se puede eliminar una mesa ocupada' });
   }
 
-  db.prepare('DELETE FROM tables_config WHERE id = ?').run(id);
+  await run('DELETE FROM tables_config WHERE id = ?', [id]);
   res.json({ message: 'Mesa eliminada' });
-});
+}));
 
 module.exports = router;

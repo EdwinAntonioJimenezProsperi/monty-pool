@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { formatDate } from '../utils/datetime';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -102,7 +103,7 @@ export default function AdminUsers() {
                     {user.role === 'admin' ? 'Administrador' : 'Encargado'}
                   </span>
                 </td>
-                <td>{new Date(user.created_at).toLocaleDateString('es-MX')}</td>
+                <td>{formatDate(user.created_at)}</td>
                 <td>
                   <div className="actions-row">
                     <button className="btn btn-sm btn-outline" onClick={() => openEdit(user)}>

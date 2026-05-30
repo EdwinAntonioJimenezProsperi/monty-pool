@@ -1,18 +1,17 @@
 const express = require('express');
-const { getDb } = require('../database');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { all, get, withTransaction, asyncHandler } = require('../database');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, asyncHandler(async (req, res) => {
   const { product_id, quantity, table_id } = req.body;
 
   if (!product_id || !quantity || quantity < 1) {
     return res.status(400).json({ error: 'Producto y cantidad son requeridos' });
   }
 
-  const db = getDb();
-  const product = db.prepare('SELECT * FROM products WHERE id = ? AND active = 1').get(product_id);
+  const product = await get('SELECT * FROM products WHERE id = ? AND active = 1', [product_id]);
 
   if (!product) {
     return res.status(404).json({ error: 'Producto no encontrado' });
@@ -24,26 +23,26 @@ router.post('/', authenticateToken, (req, res) => {
 
   const total = product.price * quantity;
 
-  const sale = db.transaction(() => {
-    db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?').run(quantity, product_id);
+  const sale = await withTransaction(async (q) => {
+    await q.run('UPDATE products SET stock = stock - ? WHERE id = ?', [quantity, product_id]);
 
-    const result = db.prepare(
-      'INSERT INTO sales (product_id, quantity, unit_price, total, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(product_id, quantity, product.price, total, req.user.id, table_id || null);
+    const inserted = await q.get(
+      'INSERT INTO sales (product_id, quantity, unit_price, total, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
+      [product_id, quantity, product.price, total, req.user.id, table_id || null]
+    );
 
-    return db.prepare(`
+    return q.get(`
       SELECT s.*, p.name as product_name
       FROM sales s
       JOIN products p ON s.product_id = p.id
       WHERE s.id = ?
-    `).get(result.lastInsertRowid);
-  })();
+    `, [inserted.id]);
+  });
 
   res.status(201).json(sale);
-});
+}));
 
-router.get('/', authenticateToken, (req, res) => {
-  const db = getDb();
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
   const { from, to, limit: queryLimit } = req.query;
   const limit = parseInt(queryLimit) || 100;
 
@@ -74,12 +73,11 @@ router.get('/', authenticateToken, (req, res) => {
   query += ' ORDER BY s.created_at DESC LIMIT ?';
   params.push(limit);
 
-  const sales = db.prepare(query).all(...params);
+  const sales = await all(query, params);
   res.json(sales);
-});
+}));
 
-router.get('/summary', authenticateToken, (req, res) => {
-  const db = getDb();
+router.get('/summary', authenticateToken, asyncHandler(async (req, res) => {
   const { from, to } = req.query;
 
   let dateFilter = '';
@@ -94,19 +92,20 @@ router.get('/summary', authenticateToken, (req, res) => {
     params.push(to);
   }
 
-  const totalSales = db.prepare(
-    `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as count FROM sales WHERE 1=1 ${dateFilter}`
-  ).get(...params);
+  const totalSales = await get(
+    `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as count FROM sales WHERE 1=1 ${dateFilter}`,
+    params
+  );
 
-  const topProducts = db.prepare(`
+  const topProducts = await all(`
     SELECT p.name, SUM(s.quantity) as total_qty, SUM(s.total) as total_revenue
     FROM sales s
     JOIN products p ON s.product_id = p.id
     WHERE 1=1 ${dateFilter}
-    GROUP BY s.product_id
+    GROUP BY s.product_id, p.name
     ORDER BY total_qty DESC
     LIMIT 10
-  `).all(...params);
+  `, params);
 
   let tableDateFilter = '';
   const tableParams = [];
@@ -119,17 +118,22 @@ router.get('/summary', authenticateToken, (req, res) => {
     tableParams.push(to);
   }
 
-  const tableRevenue = db.prepare(
+  const tableRevenue = await get(
     `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as sessions
-     FROM table_sessions WHERE ended_at IS NOT NULL ${tableDateFilter}`
-  ).get(...tableParams);
+     FROM table_sessions WHERE ended_at IS NOT NULL ${tableDateFilter}`,
+    tableParams
+  );
 
   res.json({
-    product_sales: totalSales,
-    table_revenue: tableRevenue,
-    grand_total: totalSales.total + tableRevenue.total,
-    top_products: topProducts
+    product_sales: { total: Number(totalSales.total), count: Number(totalSales.count) },
+    table_revenue: { total: Number(tableRevenue.total), sessions: Number(tableRevenue.sessions) },
+    grand_total: Number(totalSales.total) + Number(tableRevenue.total),
+    top_products: topProducts.map(p => ({
+      name: p.name,
+      total_qty: Number(p.total_qty),
+      total_revenue: Number(p.total_revenue)
+    }))
   });
-});
+}));
 
 module.exports = router;
