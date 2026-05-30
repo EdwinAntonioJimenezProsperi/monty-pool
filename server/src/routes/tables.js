@@ -17,8 +17,8 @@ router.get('/', authenticateToken, (req, res) => {
       const hours = Math.floor(diffMinutes / 60);
       const minutes = diffMinutes % 60;
 
-      const totalHalfHours = Math.ceil(diffMinutes / 30);
-      const estimatedTotal = totalHalfHours * table.price_per_half_hour;
+      // Cobro proporcional (regla de 3 simple): 60 min = price_per_hour
+      const estimatedTotal = Math.round((diffMinutes * table.price_per_hour / 60) * 100) / 100;
 
       return {
         ...table,
@@ -78,8 +78,8 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
   const diffMs = now - startTime;
   const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
 
-  const totalHalfHours = Math.ceil(diffMinutes / 30);
-  const total = totalHalfHours * table.price_per_half_hour;
+  // Cobro proporcional (regla de 3 simple): 60 min = price_per_hour
+  const total = Math.round((diffMinutes * table.price_per_hour / 60) * 100) / 100;
 
   const endTime = now.toISOString().replace('Z', '').split('.')[0];
 
@@ -97,7 +97,7 @@ router.post('/:id/stop', authenticateToken, (req, res) => {
     table_id: parseInt(id),
     duration_minutes: diffMinutes,
     total,
-    message: `Mesa ${table.name} liberada. Tiempo: ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m. Total: Bs ${total}`
+    message: `Mesa ${table.name} liberada. Tiempo: ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m. Total: Bs ${total.toFixed(2)}`
   });
 });
 

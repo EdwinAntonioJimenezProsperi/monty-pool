@@ -1,22 +1,38 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Table2, ShoppingCart, Package,
-  Settings, Users, BarChart3, LogOut, CircleDot
+  Settings, Users, BarChart3, LogOut, CircleDot, Menu, X
 } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <div className="app-container">
-      <aside className="sidebar">
+      <header className="mobile-topbar">
+        <button className="hamburger-btn" onClick={() => setMenuOpen(true)} aria-label="Abrir menú">
+          <Menu size={24} />
+        </button>
+        <h1>🎱 Monty Pool</h1>
+      </header>
+
+      {menuOpen && <div className="sidebar-overlay" onClick={closeMenu} />}
+
+      <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h1>🎱 Monty Pool</h1>
           <div className="subtitle">Sistema de Gestión</div>
+          <button className="sidebar-close-btn" onClick={closeMenu} aria-label="Cerrar menú">
+            <X size={22} />
+          </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" onClick={closeMenu}>
           <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>
             <LayoutDashboard size={20} /> <span>Dashboard</span>
           </NavLink>
