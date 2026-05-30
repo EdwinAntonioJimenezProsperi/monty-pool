@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { getDb } = require('./database');
+const { seed } = require('./seed');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -35,8 +36,9 @@ app.get('*', (req, res) => {
   }
 });
 
-// Initialize database
+// Initialize database and seed defaults (idempotent)
 getDb();
+seed();
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
