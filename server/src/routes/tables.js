@@ -33,6 +33,48 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
   res.json(enriched);
 }));
 
+// Historial por día: por cada mesa, en el rango (un día) indicado, devuelve
+// cuántas veces se jugó, la primera y última hora, y el total en Bs generado.
+// El cliente envía from/to como marcas de tiempo ISO que delimitan el día
+// elegido en la zona horaria del dispositivo, de modo que el agrupado por día
+// respeta la hora local del usuario.
+router.get('/report', authenticateToken, asyncHandler(async (req, res) => {
+  const { from, to } = req.query;
+
+  const conditions = ["s.ended_at IS NOT NULL"];
+  const params = [];
+  if (from) {
+    conditions.push('s.started_at >= ?');
+    params.push(from);
+  }
+  if (to) {
+    conditions.push('s.started_at <= ?');
+    params.push(to);
+  }
+
+  const rows = await all(`
+    SELECT t.id AS table_id, t.name,
+           COUNT(s.id) AS plays,
+           MIN(s.started_at) AS first_started,
+           MAX(s.ended_at) AS last_ended,
+           COALESCE(SUM(s.total), 0) AS total
+    FROM tables_config t
+    LEFT JOIN table_sessions s
+      ON s.table_id = t.id AND ${conditions.join(' AND ')}
+    GROUP BY t.id, t.name
+    ORDER BY t.id
+  `, params);
+
+  res.json(rows.map(r => ({
+    table_id: r.table_id,
+    name: r.name,
+    plays: Number(r.plays),
+    first_started: r.first_started,
+    last_ended: r.last_ended,
+    total: Number(r.total)
+  })));
+}));
+
 router.post('/:id/start', authenticateToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
