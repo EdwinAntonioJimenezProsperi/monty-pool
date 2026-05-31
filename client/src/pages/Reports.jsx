@@ -1,7 +1,23 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { DollarSign, Table2, ShoppingCart, TrendingUp, Trash2 } from 'lucide-react';
-import { formatDateTime } from '../utils/datetime';
+import { formatDateTime, formatTime } from '../utils/datetime';
+
+// Fecha local de hoy en formato YYYY-MM-DD (para el selector por día).
+function todayLocal() {
+  const d = new Date();
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 10);
+}
+
+// Convierte un día local (YYYY-MM-DD) al rango ISO [inicio, fin] en UTC,
+// para filtrar las sesiones de ese día según la zona horaria del dispositivo.
+function dayRange(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
 
 export default function Reports() {
   const [summary, setSummary] = useState(null);
@@ -10,10 +26,26 @@ export default function Reports() {
   const [to, setTo] = useState('');
   const [message, setMessage] = useState(null);
   const [resetting, setResetting] = useState(false);
+  const [tablesDay, setTablesDay] = useState(todayLocal());
+  const [tablesReport, setTablesReport] = useState([]);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    loadTablesReport();
+  }, [tablesDay]);
+
+  const loadTablesReport = async () => {
+    try {
+      const { from, to } = dayRange(tablesDay);
+      const res = await api.get('/tables/report', { params: { from, to } });
+      setTablesReport(res.data);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -139,6 +171,44 @@ export default function Reports() {
           )}
         </>
       )}
+
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <h3>Historial de Mesas por Día</h3>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <input type="date" className="form-control" value={tablesDay} onChange={e => setTablesDay(e.target.value)} />
+          </div>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Mesa</th>
+              <th>Veces jugada</th>
+              <th>Desde</th>
+              <th>Hasta</th>
+              <th>Total Bs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tablesReport.map(r => (
+              <tr key={r.table_id}>
+                <td><strong>{r.name}</strong></td>
+                <td>{r.plays}</td>
+                <td>{r.first_started ? formatTime(r.first_started) : '-'}</td>
+                <td>{r.last_ended ? formatTime(r.last_ended) : '-'}</td>
+                <td><strong>Bs {r.total}</strong></td>
+              </tr>
+            ))}
+            <tr>
+              <td><strong>Total del día</strong></td>
+              <td><strong>{tablesReport.reduce((a, r) => a + r.plays, 0)}</strong></td>
+              <td>-</td>
+              <td>-</td>
+              <td><strong>Bs {tablesReport.reduce((a, r) => a + r.total, 0)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div className="card">
         <div className="card-header">

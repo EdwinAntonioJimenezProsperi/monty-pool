@@ -20,3 +20,8 @@ export function formatDate(value) {
   const d = parseServerDate(value);
   return d ? d.toLocaleDateString() : '';
 }
+
+export function formatTime(value) {
+  const d = parseServerDate(value);
+  return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+}
