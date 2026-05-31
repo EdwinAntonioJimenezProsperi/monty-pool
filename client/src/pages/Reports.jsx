@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import api from '../api';
 import { DollarSign, Table2, ShoppingCart, TrendingUp, Trash2 } from 'lucide-react';
 import { formatDateTime, formatTime } from '../utils/datetime';
@@ -183,27 +183,37 @@ export default function Reports() {
           <thead>
             <tr>
               <th>Mesa</th>
-              <th>Veces jugada</th>
-              <th>Desde</th>
-              <th>Hasta</th>
+              <th>Vez</th>
+              <th>Hora inicio</th>
+              <th>Hora fin</th>
               <th>Total Bs</th>
             </tr>
           </thead>
           <tbody>
             {tablesReport.map(r => (
-              <tr key={r.table_id}>
-                <td><strong>{r.name}</strong></td>
-                <td>{r.plays}</td>
-                <td>{r.first_started ? formatTime(r.first_started) : '-'}</td>
-                <td>{r.last_ended ? formatTime(r.last_ended) : '-'}</td>
-                <td><strong>Bs {r.total}</strong></td>
-              </tr>
+              <Fragment key={r.table_id}>
+                <tr style={{ background: '#f1f5f9' }}>
+                  <td colSpan={4}><strong>{r.name}</strong> — {r.plays} {r.plays === 1 ? 'vez' : 'veces'}</td>
+                  <td><strong>Bs {r.total}</strong></td>
+                </tr>
+                {r.plays === 0 ? (
+                  <tr>
+                    <td></td>
+                    <td colSpan={4} style={{ color: '#888' }}>Sin juegos este día</td>
+                  </tr>
+                ) : r.sessions.map((s, i) => (
+                  <tr key={i}>
+                    <td></td>
+                    <td>{i + 1}</td>
+                    <td>{formatTime(s.started_at)}</td>
+                    <td>{s.ended_at ? formatTime(s.ended_at) : '-'}</td>
+                    <td>Bs {s.total}</td>
+                  </tr>
+                ))}
+              </Fragment>
             ))}
             <tr>
-              <td><strong>Total del día</strong></td>
-              <td><strong>{tablesReport.reduce((a, r) => a + r.plays, 0)}</strong></td>
-              <td>-</td>
-              <td>-</td>
+              <td colSpan={4}><strong>Total del día</strong></td>
               <td><strong>Bs {tablesReport.reduce((a, r) => a + r.total, 0)}</strong></td>
             </tr>
           </tbody>

@@ -52,27 +52,34 @@ router.get('/report', authenticateToken, asyncHandler(async (req, res) => {
     params.push(to);
   }
 
-  const rows = await all(`
-    SELECT t.id AS table_id, t.name,
-           COUNT(s.id) AS plays,
-           MIN(s.started_at) AS first_started,
-           MAX(s.ended_at) AS last_ended,
-           COALESCE(SUM(s.total), 0) AS total
-    FROM tables_config t
-    LEFT JOIN table_sessions s
-      ON s.table_id = t.id AND ${conditions.join(' AND ')}
-    GROUP BY t.id, t.name
-    ORDER BY t.id
+  const tables = await all('SELECT id, name FROM tables_config ORDER BY id');
+
+  const sessions = await all(`
+    SELECT s.table_id, s.started_at, s.ended_at, s.duration_minutes, s.total
+    FROM table_sessions s
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY s.table_id, s.started_at
   `, params);
 
-  res.json(rows.map(r => ({
-    table_id: r.table_id,
-    name: r.name,
-    plays: Number(r.plays),
-    first_started: r.first_started,
-    last_ended: r.last_ended,
-    total: Number(r.total)
-  })));
+  // Agrupa las sesiones por mesa: cada mesa incluye el detalle de cada vez que
+  // se jugó (hora de inicio y fin), además del conteo y el total del día.
+  const report = tables.map(t => {
+    const own = sessions.filter(s => s.table_id === t.id);
+    return {
+      table_id: t.id,
+      name: t.name,
+      plays: own.length,
+      total: own.reduce((a, s) => a + Number(s.total || 0), 0),
+      sessions: own.map(s => ({
+        started_at: s.started_at,
+        ended_at: s.ended_at,
+        duration_minutes: Number(s.duration_minutes || 0),
+        total: Number(s.total || 0)
+      }))
+    };
+  });
+
+  res.json(report);
 }));
 
 router.post('/:id/start', authenticateToken, asyncHandler(async (req, res) => {
